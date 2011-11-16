@@ -89,6 +89,13 @@ if ($rh) {
 
             // get time between the two timing stops
             $total_time = get_time_diff($last_timing_row['departure_time'], $row['arrival_time']);
+            if ($total_time === false) {
+                echo "Problem parsing the arrival or departure time from a timing row\n";
+                fclose($rh);
+                fclose($wh);
+                exit;
+            }
+
 
             // get distance between the two timing stops
             $total_dist = $row['shape_dist_traveled'] - $last_timing_row['shape_dist_traveled'];
@@ -103,6 +110,12 @@ if ($rh) {
 
                 // calculate arrival time
                 $arrival_time = add_to_time($last_timing_row['departure_time'], $time_to_this_stop);
+                if ($arrival_time === false) {
+                    echo "Problem parsing the departure time from a timing row\n";
+                    fclose($rh);
+                    fclose($wh);
+                    exit;
+                }
 
                 // overwrite value in original row array
                 $missing_record['arrival_time'] = $arrival_time;
@@ -154,6 +167,8 @@ function print_row($wh, $row) {
  */
 function add_to_time($time, $secs) {
     // we need an arbritary date
+    // to provide support for dates
+    // rolling past midnight
     $date = '2000-01-01';
     $str = "$date $time";
     $unixtime = strtotime($str);
@@ -164,11 +179,14 @@ function add_to_time($time, $secs) {
 
     $newtime = $unixtime + $secs;
 
-    // round to the nearest minute
-    if ($newtime % 60 >= 30) {
-        $newtime += 60 - ($newtime % 60);
+    // round to the nearest minute:
+    // 0-29 rounded down
+    // 30-59 rounded up
+    $secs_to_round = $newtime % 60;
+    if ($secs_to_round >= 30) {
+        $newtime += 60 - $secs_to_round;
     } else {
-        $newtime -= ($newtime % 60);
+        $newtime -= $secs_to_round;
     }
 
     // return HH:MM:SS
@@ -188,13 +206,15 @@ function add_to_time($time, $secs) {
  */
 function get_time_diff($t1, $t2) {
     // we need an arbritary date
+    // to provide support for dates
+    // rolling past midnight
     $date = '2000-01-01';
     $str1 = "$date $t1";
     $str2 = "$date $t2";
     $time1 = strtotime($str1);
     $time2 = strtotime($str2);
     // failed to parse times
-    if ($time1 === false or $time2 === false) {
+    if ($time1 === false || $time2 === false) {
         return false;
     }
     // if time1 appears to be later than time2 we may be working across a date boundary
