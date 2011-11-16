@@ -89,7 +89,7 @@ if ($rh) {
             // the trip didn't have timing points at the start/end. bad news!
             if ($last_timing_row === null || $last_timing_row['trip_id'] != $row['trip_id']) {
                 echo "Looks like there's a trip without timing data at the start and/or end!\n";
-                echo implode(',' $row) . "\n";
+                echo implode(',', $row) . "\n";
                 fclose($rh);
                 fclose($wh);
                 exit;
