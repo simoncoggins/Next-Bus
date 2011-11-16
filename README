@@ -1,0 +1,44 @@
+Script to interpolate minor stop times using the surrounding
+major stops.
+
+This takes a stop_times.txt file from a google transit feed
+and outputs a new file stop_times_interpolated.txt with the
+missing stop times filled in.
+
+Original use was for the Wellington GTF when they stopped
+including minor stop times.
+
+Interpolates using the shape_dist_traveled assuming the buses
+are moving at a constant speed. Interpolated stops are given
+the same departure and arrival time and times are rounded to
+the nearest minute.
+
+Output file should be the same as the input, but with the
+missing times added and with unix line endings.
+
+Example input (stop_times.txt):
+
+trip_id,arrival_time,departure_time,stop_id,stop_sequence,stop_headsign,pickup_type,drop_off_type,shape_dist_traveled
+1,06:58:00,06:58:00,22018,2,,0,1,0
+1,,,22557,3,,0,1,39
+1,,,22559,4,,0,1,76
+1,,,22560,5,,0,1,130
+1,07:02:00,07:02:00,21984,62,,1,0,157
+2,07:04:00,07:04:00,23129,1,,0,1,0
+2,,,22026,6,,0,1,68
+2,,,22027,7,,0,1,117
+2,,,22028,8,,0,1,159
+
+Example output (stop_times_interpolated.txt):
+
+trip_id,arrival_time,departure_time,stop_id,stop_sequence,stop_headsign,pickup_type,drop_off_type,shape_dist_traveled
+1,06:58:00,06:58:00,22018,2,,0,1,0
+1,06:59:00,06:59:00,22557,3,,0,1,39
+1,07:00:00,07:00:00,22559,4,,0,1,76
+1,07:01:00,07:01:00,22560,5,,0,1,130
+1,07:02:00,07:02:00,21984,62,,1,0,157
+2,07:04:00,07:04:00,23129,1,,0,1,0
+2,07:07:00,07:07:00,22026,6,,0,1,68
+2,07:09:00,07:09:00,22027,7,,0,1,117
+2,07:10:00,07:10:00,22028,8,,0,1,159
+
