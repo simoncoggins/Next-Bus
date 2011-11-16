@@ -208,21 +208,3 @@ function get_time_diff($t1, $t2) {
 
 }
 
-/**
- * Converts a time in HH:MM:SS to number of seconds
- *
- * @param string $time Time in HH:MM:SS
- *
- * @return integer|false Number of seconds or false if $time is in wrong format
- */
-function time2secs($time) {
-    if (preg_match('/(^<digit>{2}):<digit>{2}:<digit>{2}$/', $time, $matches)) {
-        $h = $matches[1];
-        $m = $matches[2];
-        $s = $matches[3];
-        return $h*60*60 + $m*60 + $s;
-    } else {
-        return false;
-    }
-}
-
