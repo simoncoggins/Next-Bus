@@ -91,14 +91,14 @@ if ($rh) {
             $total_time = get_time_diff($last_timing_row['departure_time'], $row['arrival_time']);
 
             // get distance between the two timing stops
-            $total_dist = $last_timing_row['shape_dist_traveled'] - $row['shape_dist_traveled'];
+            $total_dist = $row['shape_dist_traveled'] - $last_timing_row['shape_dist_traveled'];
 
             // so for each stop to interpolate, the calculation is:
             // last timing stop departure time   +  ( (dist to this stop * total time ) / total dist )
 
             // loop through each missing row, fixing it then printing it out
             foreach ($records_to_interpolate as $missing_record) {
-                $dist_to_this_stop = $last_timing_row['shape_dist_traveled'] - $missing_record['shape_dist_traveled'];
+                $dist_to_this_stop =  $missing_record['shape_dist_traveled'] - $last_timing_row['shape_dist_traveled'];
                 $time_to_this_stop = ( $dist_to_this_stop * $total_time ) / $total_dist;
 
                 // calculate arrival time
