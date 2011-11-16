@@ -17,7 +17,8 @@
  * the nearest minute.
  *
  * Output file should be the same as the input, but with the
- * missing times added and with unix line endings.
+ * missing times added. Windows line endings ('\r\n') are
+ * retained.
  *
  * @author Simon Coggins
  *
@@ -153,7 +154,7 @@ fclose($wh);
  *
  */
 function print_row($wh, $row) {
-    fwrite($wh, implode(',', $row) . "\n");
+    fwrite($wh, implode(',', $row) . "\r\n");
 }
 
 /**
