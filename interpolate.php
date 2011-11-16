@@ -20,6 +20,12 @@
  * missing times added. Windows line endings ('\r\n') are
  * retained.
  *
+ * The script will exit with an error if it encounters a problem.
+ *
+ * If a row contains only one of arrival_time or departure_time,
+ * it will treat it like a minor stop and recalculate both
+ * values.
+ *
  * @author Simon Coggins
  *
  */
@@ -43,7 +49,7 @@ if ($rh) {
     if (($firstrow = fgets($rh, 4096)) !== false) {
         // get the header columns and output to file
         $headings = explode(',', trim($firstrow));
-        print_row($wh, $headings);
+        write_row($wh, $headings);
 
         // loop through the remaining rows
         while (($buffer = fgets($rh, 4096)) !== false) {
@@ -65,7 +71,7 @@ if ($rh) {
             // this timing row, store it and carry on
             if (empty($records_to_interpolate) && !$times_missing) {
                 $last_timing_row = $row;
-                print_row($wh, $row);
+                write_row($wh, $row);
                 continue;
             }
 
@@ -83,6 +89,7 @@ if ($rh) {
             // the trip didn't have timing points at the start/end. bad news!
             if ($last_timing_row === null || $last_timing_row['trip_id'] != $row['trip_id']) {
                 echo "Looks like there's a trip without timing data at the start and/or end!\n";
+                echo implode(',' $row) . "\n";
                 fclose($rh);
                 fclose($wh);
                 exit;
@@ -92,6 +99,8 @@ if ($rh) {
             $total_time = get_time_diff($last_timing_row['departure_time'], $row['arrival_time']);
             if ($total_time === false) {
                 echo "Problem parsing the arrival or departure time from a timing row\n";
+                echo "Timing departure: {$last_timing_row['departure_time']}\n";
+                echo "Timing arrival: {$row['arrival_time']}\n";
                 fclose($rh);
                 fclose($wh);
                 exit;
@@ -104,7 +113,7 @@ if ($rh) {
             // so for each stop to interpolate, the calculation is:
             // last timing stop departure time   +  ( (dist to this stop * total time ) / total dist )
 
-            // loop through each missing row, fixing it then printing it out
+            // loop through each missing row, fixing it then writing to file
             foreach ($records_to_interpolate as $missing_record) {
                 $dist_to_this_stop =  $missing_record['shape_dist_traveled'] - $last_timing_row['shape_dist_traveled'];
                 $time_to_this_stop = ( $dist_to_this_stop * $total_time ) / $total_dist;
@@ -113,6 +122,7 @@ if ($rh) {
                 $arrival_time = add_to_time($last_timing_row['departure_time'], $time_to_this_stop);
                 if ($arrival_time === false) {
                     echo "Problem parsing the departure time from a timing row\n";
+                    echo "Timing departure: {$last_timing_row['departure_time']}\n";
                     fclose($rh);
                     fclose($wh);
                     exit;
@@ -123,14 +133,14 @@ if ($rh) {
                 $missing_record['departure_time'] = $arrival_time; // same as arrival time
 
                 // write the row
-                print_row($wh, $missing_record);
+                write_row($wh, $missing_record);
             }
 
             // reset array for next interpolation
             $records_to_interpolate = array();
 
-            // print the timing row and save for next time round the loop
-            print_row($wh, $row);
+            // write out the timing row and save for next time round the loop
+            write_row($wh, $row);
             $last_timing_row = $row;
 
         }
@@ -153,7 +163,7 @@ fclose($wh);
  * @param array $row Array of values to write to the file handle
  *
  */
-function print_row($wh, $row) {
+function write_row($wh, $row) {
     fwrite($wh, implode(',', $row) . "\r\n");
 }
 
@@ -180,7 +190,7 @@ function add_to_time($time, $secs) {
 
     $newtime = $unixtime + $secs;
 
-    // round to the nearest minute:
+    // round seconds to the nearest minute:
     // 0-29 rounded down
     // 30-59 rounded up
     $secs_to_round = $newtime % 60;
