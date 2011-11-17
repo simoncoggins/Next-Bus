@@ -171,37 +171,51 @@ function write_row($wh, $row) {
  * Given a time in HH:MM:SS format and a number of seconds, calculate a new
  * HH:MM:SS time rounding to the nearest minute
  *
+ * If the additional seconds causes the time to pass midnight, continue
+ * adding hours instead of wrapping back to 00:00:00. This is to provide
+ * consistency with how GTF handles late night trips, e.g.:
+ * Wednesday at 00:01:00 is early Wednesday morning
+ * Wednesday at 24:01:00 is early Thursday morning
+ *
  * @param string $time Time in HH:MM:SS format
  * @param integer $secs Number of seconds to add
  *
  * @return string|false New time in HH:MM:SS or false if parsing failed
  */
 function add_to_time($time, $secs) {
-    // we need an arbritary date
-    // to provide support for dates
-    // rolling past midnight
-    $date = '2000-01-01';
-    $str = "$date $time";
-    $unixtime = strtotime($str);
-    // failed to parse time
-    if ($unixtime === false) {
+    if (preg_match('/^(\d{2}):(\d{2}):(\d{2})$/', $time, $matches) === false) {
+        // failed to parse time
         return false;
     }
+    list($unused, $h, $m, $s) = $matches;
+    $time_in_seconds = $h*60*60 + $m*60 + $s;
 
-    $newtime = $unixtime + $secs;
+    $newtime = $time_in_seconds + $secs;
 
-    // round seconds to the nearest minute:
-    // 0-29 rounded down
-    // 30-59 rounded up
-    $secs_to_round = $newtime % 60;
-    if ($secs_to_round >= 30) {
-        $newtime += 60 - $secs_to_round;
-    } else {
-        $newtime -= $secs_to_round;
+    // convert back to HH:MM:SS but allowing hours to exceed 23
+
+    // calculate and subtract the whole hours
+    $hours = floor($newtime / 3600);
+    $newtime -= $hours * 3600;
+
+    // calculate and substract the whole minutes
+    $minutes = floor($newtime / 60);
+    $newtime -= $minutes * 60;
+
+    // round to the nearest minute, so increment minutes if
+    // seconds are 30 - 59 or leave if they are 0 - 29
+    if ($newtime >= 30) {
+        $minutes++;
+        // handle minutes rolling over
+        if ($minutes == 60) {
+            $hours++;
+            $minutes = 0;
+        }
     }
+    $seconds = 0;
 
     // return HH:MM:SS
-    return strftime('%T', $newtime);
+    return sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
 }
 
 
